@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 19
+names: ['CARDBOARD', 'GLASS', 'METAL', 'PAPER', 'PLASTIC', 'glass', 'metal', 'organic_coffee_grounds', 'organic_eggshell', 'organic_flower', 'organic_leaves', 'organic_leftover_food', 'organic_shrimp_shell', 'organic_soft_stem', 'organic_straw', 'organic_vegetables', 'organic_waste_oil', 'paper', 'plastic']
+
+roboflow:
+  workspace: datnthaoht
+  project: garbage-classification-3-ze5kj
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/datnthaoht/garbage-classification-3-ze5kj/dataset/3

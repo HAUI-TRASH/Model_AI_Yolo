@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 15
+names: ['battery', 'cigarette_butt', 'diapers', 'electronic', 'face-mask', 'food_waste', 'fruit', 'glass', 'metal', 'paper', 'plant_waste', 'plastic', 'soft_waste', 'styrofoam', 'toothbrush']
+
+roboflow:
+  workspace: datn-hcmuy
+  project: trash-rzku3
+  version: 5
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/datn-hcmuy/trash-rzku3/dataset/5
