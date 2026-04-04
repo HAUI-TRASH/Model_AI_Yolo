@@ -13,7 +13,7 @@ cache: false
 device: null
 workers: 8
 project: null
-name: huy3
+name: multiTrash
 exist_ok: false
 pretrained: true
 optimizer: auto

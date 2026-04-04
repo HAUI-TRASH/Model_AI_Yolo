@@ -14,7 +14,7 @@ import cloudinary.uploader
 
 app = FastAPI(title="Trash Detection API")
 
-MODEL_PATH = "runs/detect/huy3/best.pt"
+MODEL_PATH = "runs/detect/multiTrash/best.pt"
 model = YOLO(MODEL_PATH)
 
 #  Khuyên dùng ENV thay vì hardcode secret
@@ -128,6 +128,6 @@ def predict_image_url(req: PredictUrlRequest) -> Dict[str, Any]:
         "annotatedUrl": annotated_url,          #  link ảnh đã vẽ box
         "params": {"conf": req.conf, "iou": req.iou},
         "count": len(detections),
-        "confidenceAvg": confidence_avg,
+        # "confidenceAvg": confidence_avg,
         "detections": detections
     }
