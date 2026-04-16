@@ -15,7 +15,7 @@ import cloudinary.uploader
 
 app = FastAPI(title="Trash Detection API")
 
-MODEL_PATH = "runs/detect/multiTrash/best.pt"
+MODEL_PATH = "runs/detect/yolo_fast_accurate/weights/best.pt"
 model = YOLO(MODEL_PATH)
 
 LOW_CONF_THRESHOLD = 0.5
