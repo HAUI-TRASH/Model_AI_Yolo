@@ -15,7 +15,7 @@ import cloudinary.uploader
 
 app = FastAPI(title="Trash Detection API")
 
-MODEL_PATH = "runs/detect/yolo_fast_accurate/weights/best.pt"
+MODEL_PATH = "runs/detect/yolo_resumed_training/weights/best.pt"
 model = YOLO(MODEL_PATH)
 
 LOW_CONF_THRESHOLD = 0.5
@@ -198,6 +198,39 @@ async def predict_image(
         return JSONResponse(content=result, status_code=200)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/predict-image-json")
+async def predict_image_json(file: UploadFile = File(...), conf: float = 0.25, iou: float = 0.6):
+    img_bytes = await file.read()
+    np_arr = np.frombuffer(img_bytes, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    if img is None:
+        return JSONResponse({"error": "Invalid image"}, status_code=400)
+
+    results = model.predict(img, conf=conf, iou=iou, verbose=False)
+    r0 = results[0]
+
+    detections: List[Dict[str, Any]] = []
+    if r0.boxes is not None and len(r0.boxes) > 0:
+        names = r0.names
+        for b in r0.boxes:
+            cls_id = int(b.cls.item())
+            label_raw = names.get(cls_id, str(cls_id))
+            conf_score = float(b.conf.item())
+            xyxy = b.xyxy[0].tolist()
+
+            detections.append({
+                "label": label_raw,
+                "confidence": round(conf_score, 4),
+                "labelDisplay": label_raw,
+                "x1": int(xyxy[0]),
+                "y1": int(xyxy[1]),
+                "x2": int(xyxy[2]),
+                "y2": int(xyxy[3])
+            })
+
+    return {"detections": detections}
 
 
 @app.post("/predict-image-url")
