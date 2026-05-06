@@ -14,12 +14,12 @@ import cloudinary
 import cloudinary.uploader
 
 app = FastAPI(title="Trash Detection API")
+# MODEL_PATH = "runs/detect/yolo_resumed_training/weights/best.pt"
 
-MODEL_PATH = "runs/detect/yolo_resumed_training/weights/best.pt"
+MODEL_PATH = "runs/detect/yolo_fast_accurate/weights/best.pt"
 model = YOLO(MODEL_PATH)
 
 LOW_CONF_THRESHOLD = 0.5
-
 cloudinary.config(
     cloud_name="dtbyrc1ae",
     api_key="418518358217964",
