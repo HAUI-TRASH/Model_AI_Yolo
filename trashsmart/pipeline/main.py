@@ -19,7 +19,7 @@ from pydantic import BaseModel, HttpUrl
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline.config import (
+from trashsmart.pipeline.config import (
     CLASS_NAMES,
     CONF_THRESHOLD,
     CROPS_DIR,
@@ -32,8 +32,8 @@ from pipeline.config import (
     YOLO_IMG_SIZE,
     YOLO_MODEL_PATH,
 )
-from pipeline.models import load_resnet_model, load_yolo_model
-from pipeline.utils import (
+from trashsmart.pipeline.models import load_resnet_model, load_yolo_model
+from trashsmart.pipeline.utils import (
     build_detection_label,
     build_vietnamese_detection_label,
     draw_label_box,
@@ -317,13 +317,18 @@ def process_image(
         conf_list.append(resnet_conf)
 
         detection: Dict[str, Any] = {
-            "label":        display_label,
-            "labelKey":     combined_label,
-            "confident":    round(resnet_conf, 4),
+            "label": resnet_label,
+            "labelDisplay":  display_label,
+            "confidence":    round(resnet_conf, 4),
+            "x1":            x1,
+            "y1":            y1,
+            "x2":            x2,
+            "y2":            y2,
+            "annotatedUrl":  annotated_url,
+            "needsConfirm":  needs_confirm,
         }
-        if needs_confirm:
-            detection["cropUrl"]      = crop_url
-            detection["needsConfirm"] = True
+        if crop_url:
+            detection["cropUrl"] = crop_url
 
         detections.append(detection)
 

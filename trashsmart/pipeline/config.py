@@ -7,7 +7,7 @@ import torch
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from shared.constants import IMAGENET_MEAN, IMAGENET_STD
+from trashsmart.shared.constants import IMAGENET_MEAN, IMAGENET_STD
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -35,7 +35,8 @@ FIX_LOW_LIGHT = os.getenv("FIX_LOW_LIGHT", "1") == "1"
 FIX_MOTION_BLUR = os.getenv("FIX_MOTION_BLUR", "1") == "1"
 FIX_RESIZE_BLUR = os.getenv("FIX_RESIZE_BLUR", "1") == "1"
 
-FIX_ESRGAN = os.getenv("FIX_ESRGAN", "1") == "1"
+# FIX_ESRGAN = os.getenv("FIX_ESRGAN", "1") == "1"
+FIX_ESRGAN = os.getenv("FIX_ESRGAN", "0") == "1"
 ESRGAN_SMART_MODE = os.getenv("ESRGAN_SMART_MODE", "1") == "1"
 ESRGAN_ANIME_MODE = os.getenv("ESRGAN_ANIME_MODE", "0") == "1"
 ESRGAN_TARGET_SIZE = int(os.getenv("ESRGAN_TARGET_SIZE", "512"))
