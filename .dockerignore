@@ -1,0 +1,14 @@
+# Loại bỏ dữ liệu training/khám phá – KHÔNG cần khi chạy inference,
+# giúp build context nhỏ và image gọn hơn nhiều.
+.git/
+.idea/
+.venv/
+dataset/
+runs/
+*.rar
+*.jpg
+*.png
+outputs/
+crops/
+__pycache__/
+*.pyc
