@@ -423,6 +423,42 @@ def main():
 
     logger.info(f"Kết quả JSON: {json_path}")
     logger.info(f"Tổng đối tượng phát hiện: {len(response['detections'])}")
+@app.post("/predict-image-json")
+async def predict_image_json(
+    file: UploadFile = File(...),
+    request_id: Optional[int] = None
+):
+    try:
+        # Đọc ảnh upload
+        img_bytes = await file.read()
+        np_arr = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return JSONResponse(
+                {"error": "Invalid image"},
+                status_code=400
+            )
+
+        # Load YOLO + ResNet
+        yolo_model, resnet_model = get_models()
+
+        # Chạy pipeline YOLO -> crop -> ResNet -> trả JSON
+        result = process_image(
+            image=img,
+            yolo_model=yolo_model,
+            resnet_model=resnet_model,
+            request_id=request_id
+        )
+
+        return JSONResponse(content=result, status_code=200)
+
+    except Exception as e:
+        logger.exception("Predict image json failed")
+        return JSONResponse(
+            {"error": f"Predict failed: {str(e)}"},
+            status_code=500
+        )
 
 
 if __name__ == "__main__":
