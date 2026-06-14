@@ -1,2 +1,2 @@
-"""YOLO + ResNet inference pipeline package."""
+"""ResNet50 material classification pipeline package."""
 

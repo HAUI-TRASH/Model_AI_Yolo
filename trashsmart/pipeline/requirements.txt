@@ -1,5 +1,4 @@
-# torch/torchvision được cài riêng (bản CPU) trong Dockerfile.
-# ultralytics (YOLOv11) và phần ResNet đều cần torch -> KHÔNG bỏ được.
+# torch/torchvision are installed separately in Dockerfile.
 
 fastapi
 uvicorn[standard]
@@ -8,19 +7,10 @@ pydantic
 requests
 cloudinary
 
-ultralytics
+
 opencv-python-headless
 numpy
 Pillow
 tqdm
 
-# ----------------------------------------------------------------------
-# ESRGAN super-resolution: chỉ cần khi FIX_ESRGAN=1.
-# Import là lazy (trong hàm _build_model của esrgan_enhancer.py) nên với
-# FIX_ESRGAN=0 (mặc định prod) KHÔNG cần các gói này -> bỏ để build nhanh/nhẹ.
-# Muốn bật lại: gỡ comment 4 dòng dưới và thêm `git` vào apt trong Dockerfile.
-# ----------------------------------------------------------------------
-# basicsr
-# facexlib
-# gfpgan
-# git+https://github.com/xinntao/Real-ESRGAN.git
+
