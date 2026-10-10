@@ -9,7 +9,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
 PACKAGE_ROOT = PROJECT_ROOT / "trashsmart"
-MODELS_DIR = PROJECT_ROOT / "models"
+RESNET_MODEL_PATH = Path(
+    os.getenv(
+        "RESNET_MODEL_PATH",
+        PACKAGE_ROOT / "models" / "best_resnet50_model1.pth",
+    )
+)
+MODELS_DIR = RESNET_MODEL_PATH.parent
 
 DIR_PATH = Path(os.getenv("DATASET_PATH", PROJECT_ROOT / "dataset_new"))
 TARGET_SIZE = (224, 224)
@@ -35,4 +41,4 @@ INDEX_TO_NAME = {v: k for k, v in WASTE_LABELS.items()}
 
 MODEL_SAVE_PATH = MODELS_DIR / "resnet50_optimized_model1.pth"
 HISTORY_SAVE_PATH = MODELS_DIR / "resnet50_training_history1.pkl"
-BEST_MODEL_PATH = MODELS_DIR / "best_resnet50_model1.pth"
+BEST_MODEL_PATH = RESNET_MODEL_PATH

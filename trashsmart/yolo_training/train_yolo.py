@@ -74,6 +74,7 @@ def main():
     model = YOLO(MODEL_PRETRAINED)
     results = model.train(
         data=str(DATA_YAML_PATH),
+        single_cls=True,
         epochs=EPOCHS,
         batch=BATCH_SIZE,
         imgsz=IMG_SIZE,
@@ -102,7 +103,7 @@ def main():
     print(f"Best model: {Path(PROJECT_NAME) / RUN_NAME / 'weights' / 'best.pt'}")
     print("=" * 70)
 
-    metrics = model.val()
+    metrics = model.val(single_cls=True)
     print(f"mAP50-95: {metrics.box.map:.4f}")
     print(f"mAP50: {metrics.box.map50:.4f}")
     print(f"mAP75: {metrics.box.map75:.4f}")
