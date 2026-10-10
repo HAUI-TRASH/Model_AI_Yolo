@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 
 import torch
+from dotenv import load_dotenv
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+
 PACKAGE_ROOT = PROJECT_ROOT / "trashsmart"
 MODELS_DIR = PROJECT_ROOT / "models"
 
@@ -33,4 +36,3 @@ INDEX_TO_NAME = {v: k for k, v in WASTE_LABELS.items()}
 MODEL_SAVE_PATH = MODELS_DIR / "resnet50_optimized_model1.pth"
 HISTORY_SAVE_PATH = MODELS_DIR / "resnet50_training_history1.pkl"
 BEST_MODEL_PATH = MODELS_DIR / "best_resnet50_model1.pth"
-

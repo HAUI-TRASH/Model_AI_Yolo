@@ -2,14 +2,22 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# libglib cần cho OpenCV (đã dùng opencv-python-headless nên không cần libgl).
+# Runtime libraries required by the OpenCV wheel installed with Ultralytics.
 # Nếu bật lại ESRGAN (cài từ GitHub) thì thêm "git" vào danh sách dưới.
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
+    libgl1 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Cài torch bản CPU trước (nhẹ hơn nhiều so với bản CUDA mặc định)
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# Dùng PyPI cho các dependency phụ; PyTorch index chỉ chứa wheel torch CPU.
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir torch torchvision \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple
 
 COPY trashsmart/pipeline/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

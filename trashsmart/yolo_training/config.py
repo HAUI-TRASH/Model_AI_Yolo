@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 
 import torch
+from dotenv import load_dotenv
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+
 
 ROBOFLOW_KEY = os.getenv("ROBOFLOW_KEY")
 ROBOFLOW_URL = (
@@ -24,4 +27,3 @@ DEVICE = "0" if torch.cuda.is_available() else "cpu"
 
 PROJECT_NAME = os.getenv("YOLO_PROJECT_NAME", str(PROJECT_ROOT / "runs" / "waste_detection_yolo11_roboflow"))
 RUN_NAME = os.getenv("YOLO_RUN_NAME", "run_640")
-

@@ -3,14 +3,17 @@ import sys
 from pathlib import Path
 
 import torch
+from dotenv import load_dotenv
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+
 from trashsmart.shared.constants import IMAGENET_MEAN, IMAGENET_STD
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = PROJECT_ROOT / "trashsmart" / "models"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

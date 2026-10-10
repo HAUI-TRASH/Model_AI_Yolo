@@ -9,9 +9,13 @@ import tempfile
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, List, Dict, Any
 import requests
+from pathlib import Path
 
 import cloudinary
 import cloudinary.uploader
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI(title="Trash Detection API")
 # MODEL_PATH = "runs/detect/yolo_resumed_training/weights/best.pt"
@@ -21,9 +25,9 @@ model = YOLO(MODEL_PATH)
 
 LOW_CONF_THRESHOLD = 0.5
 cloudinary.config(
-    cloud_name="dtbyrc1ae",
-    api_key="418518358217964",
-    api_secret="Y2yRe1sy8C1AIvIF7eyUlVwGy20",
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
 )
 

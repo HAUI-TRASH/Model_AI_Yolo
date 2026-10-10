@@ -61,9 +61,9 @@ app = FastAPI(title="TrashSmart Detection API")
 LOW_CONF_THRESHOLD = 0.5
 
 cloudinary.config(
-    cloud_name="dtbyrc1ae",
-    api_key="418518358217964",
-    api_secret="Y2yRe1sy8C1AIvIF7eyUlVwGy20",
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True,
 )
 

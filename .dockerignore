@@ -1,6 +1,8 @@
 # Loại bỏ dữ liệu training/khám phá – KHÔNG cần khi chạy inference,
 # giúp build context nhỏ và image gọn hơn nhiều.
 .git/
+.env
+.env.*
 .idea/
 .venv/
 dataset/
