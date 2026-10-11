@@ -57,9 +57,10 @@ def download_and_extract_dataset():
 
 def main():
     print("=" * 70)
-    print("TRAIN YOLO11")
+    print("TRAIN YOLO11n")
     print("=" * 70)
     print(f"Dataset YAML: {DATA_YAML_PATH}")
+    print(f"Pretrained model: {MODEL_PRETRAINED}")
     print(f"IMG_SIZE: {IMG_SIZE}")
     print("=" * 70)
 

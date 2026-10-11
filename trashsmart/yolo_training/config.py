@@ -18,7 +18,7 @@ ROBOFLOW_URL = (
 DATASET_DIR = Path(os.getenv("YOLO_DATASET_DIR", PROJECT_ROOT / "datasets" / "HauiTrash-2"))
 DATA_YAML_PATH = Path(os.getenv("YOLO_DATA_YAML", DATASET_DIR / "data.yaml"))
 
-MODEL_PRETRAINED = os.getenv("YOLO_PRETRAINED", "yolo11m.pt")
+MODEL_PRETRAINED = os.getenv("YOLO_PRETRAINED", "yolo11n.pt")
 EPOCHS = int(os.getenv("YOLO_EPOCHS", "100"))
 BATCH_SIZE = int(os.getenv("YOLO_BATCH_SIZE", "8"))
 IMG_SIZE = int(os.getenv("YOLO_IMG_SIZE", "640"))
