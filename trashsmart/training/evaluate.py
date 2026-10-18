@@ -13,10 +13,10 @@ from tqdm import tqdm
 from sklearn.metrics import f1_score
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from shared.model import load_resnet_checkpoint
-from training.config import BEST_MODEL_PATH, DEVICE, INDEX_TO_NAME, NUM_CLASSES
+from trashsmart.shared.model import load_resnet_checkpoint
+from trashsmart.training.config import BEST_MODEL_PATH, DEVICE, INDEX_TO_NAME, NUM_CLASSES
 
 
 def plot_training_history(history_combined):
@@ -37,6 +37,8 @@ def plot_training_history(history_combined):
 
 
 def evaluate_model(val_loader, model_path=BEST_MODEL_PATH):
+    if len(val_loader.dataset) == 0:
+        raise ValueError("Validation dataset is empty; add more labelled images.")
     model = load_resnet_checkpoint(model_path, num_classes=NUM_CLASSES, device=DEVICE)
 
     criterion = nn.CrossEntropyLoss()
@@ -126,3 +128,34 @@ def plot_confusion_matrix(cm, classes, normalize=False, title="Confusion Matrix"
     plt.ylabel("True Label", fontsize=14, fontweight="bold")
     plt.xlabel("Predicted Label", fontsize=14, fontweight="bold")
     plt.show()
+
+
+def main():
+    """Evaluate the existing checkpoint without starting training."""
+    from trashsmart.training.config import DIR_PATH
+    from trashsmart.training.data_utils import get_data_loaders
+    from trashsmart.pipeline.config import CLASS_NAMES
+
+    if not DIR_PATH.is_dir():
+        raise FileNotFoundError(
+            f"ResNet dataset not found: {DIR_PATH}. Set DATASET_PATH to an "
+            "ImageFolder dataset containing glass, metal, paper, plastic folders."
+        )
+    if not Path(BEST_MODEL_PATH).is_file():
+        raise FileNotFoundError(f"ResNet checkpoint not found: {BEST_MODEL_PATH}")
+    _, val_loader, classes = get_data_loaders()
+    if classes != CLASS_NAMES:
+        raise ValueError(
+            f"Dataset class order {classes} does not match API class order {CLASS_NAMES}."
+        )
+    print(f"ResNet checkpoint: {BEST_MODEL_PATH}")
+    print(f"Dataset: {DIR_PATH}")
+    print(f"Validation samples: {len(val_loader.dataset)} (10% split, seed=42)")
+    print(f"Classes: {classes}")
+    print("Evaluation uses Resize + CenterCrop, matching training validation.")
+    _, predictions, labels = evaluate_model(val_loader)
+    print_classification_report(predictions, labels)
+
+
+if __name__ == "__main__":
+    main()

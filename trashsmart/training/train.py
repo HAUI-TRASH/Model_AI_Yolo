@@ -10,9 +10,9 @@ from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from training.config import (
+from trashsmart.training.config import (
     BEST_MODEL_PATH,
     DEVICE,
     EPOCHS,
@@ -21,7 +21,7 @@ from training.config import (
     STAGE1_EPOCHS,
 )
 
-from shared.model import *
+from trashsmart.shared.model import *
 class EarlyStopping:
     def __init__(self, patience=10, min_delta=0, mode="min"):
         self.patience = patience

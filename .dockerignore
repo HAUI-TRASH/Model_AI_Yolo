@@ -12,5 +12,7 @@ runs/
 *.png
 outputs/
 crops/
+archive/
+tests/
 __pycache__/
 *.pyc

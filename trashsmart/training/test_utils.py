@@ -10,12 +10,12 @@ from PIL import Image
 from torchvision import transforms
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from shared.model import load_resnet_checkpoint
-from shared.transforms import get_eval_transform
-from training.config import BEST_MODEL_PATH, DEVICE, DIR_PATH, INDEX_TO_NAME, NUM_CLASSES, WASTE_LABELS
-from shared.constants import IMAGENET_MEAN, IMAGENET_STD
+from trashsmart.shared.model import load_resnet_checkpoint
+from trashsmart.shared.transforms import get_eval_transform
+from trashsmart.training.config import BEST_MODEL_PATH, DEVICE, DIR_PATH, INDEX_TO_NAME, NUM_CLASSES, WASTE_LABELS
+from trashsmart.shared.constants import IMAGENET_MEAN, IMAGENET_STD
 
 def get_tta_transforms():
     spatial_augs = [

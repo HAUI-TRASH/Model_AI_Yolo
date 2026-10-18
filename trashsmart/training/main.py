@@ -9,9 +9,9 @@ import torch
 from sklearn.metrics import confusion_matrix
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from training.config import (
+from trashsmart.training.config import (
     DEVICE,
     DIR_PATH,
     HISTORY_SAVE_PATH,
@@ -19,16 +19,16 @@ from training.config import (
     MODELS_DIR,
     NUM_CLASSES,
 )
-from training.data_utils import get_class_weights, get_data_loaders
-from training.evaluate import (
+from trashsmart.training.data_utils import get_class_weights, get_data_loaders
+from trashsmart.training.evaluate import (
     evaluate_model,
     plot_confusion_matrix,
     plot_training_history,
     print_classification_report,
 )
-from training.model_utils import build_model, count_parameters
-from training.test_utils import test_random_samples
-from training.train import combine_history, train_stage1, train_stage2
+from trashsmart.training.model_utils import build_model, count_parameters
+from trashsmart.training.test_utils import test_random_samples
+from trashsmart.training.train import combine_history, train_stage1, train_stage2
 
 def main():
     if not DIR_PATH.exists():

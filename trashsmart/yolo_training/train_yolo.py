@@ -2,27 +2,31 @@ import os
 import subprocess
 import sys
 import zipfile
+import shutil
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import torch
 from ultralytics import YOLO
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from yolo_training.config import (
+from trashsmart.yolo_training.config import (
     BATCH_SIZE,
     DATASET_DIR,
     DATA_YAML_PATH,
     DEVICE,
     EPOCHS,
     IMG_SIZE,
-    MODEL_PRETRAINED,
+    LEARNING_RATE,
     PATIENCE,
     PROJECT_NAME,
     ROBOFLOW_URL,
     RUN_NAME,
 )
+from trashsmart.shared.paths import YOLO_MODEL_PATH
 
 
 def download_and_extract_dataset():
@@ -56,11 +60,13 @@ def download_and_extract_dataset():
 
 
 def main():
+    if not YOLO_MODEL_PATH.is_file():
+        raise FileNotFoundError(f"Missing canonical YOLO checkpoint: {YOLO_MODEL_PATH}")
     print("=" * 70)
-    print("TRAIN YOLO11n")
+    print("FINE-TUNE YOLO CHECKPOINT")
     print("=" * 70)
     print(f"Dataset YAML: {DATA_YAML_PATH}")
-    print(f"Pretrained model: {MODEL_PRETRAINED}")
+    print(f"Pretrained model: {YOLO_MODEL_PATH}")
     print(f"IMG_SIZE: {IMG_SIZE}")
     print("=" * 70)
 
@@ -72,7 +78,13 @@ def main():
 
     download_and_extract_dataset()
 
-    model = YOLO(MODEL_PRETRAINED)
+    backup_dir = Path(PROJECT_NAME) / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_dir / f"best_new_{datetime.now():%Y%m%d_%H%M%S_%f}.pt"
+    shutil.copy2(YOLO_MODEL_PATH, backup_path)
+    print(f"Original checkpoint backup: {backup_path}")
+
+    model = YOLO(str(YOLO_MODEL_PATH))
     results = model.train(
         data=str(DATA_YAML_PATH),
         single_cls=True,
@@ -83,10 +95,11 @@ def main():
         device=DEVICE,
         project=PROJECT_NAME,
         name=RUN_NAME,
-        exist_ok=True,
+        exist_ok=False,
         pretrained=True,
+        resume=False,
         optimizer="AdamW",
-        lr0=0.001,
+        lr0=LEARNING_RATE,
         weight_decay=0.0005,
         augment=True,
         cache="ram" if torch.cuda.is_available() else False,
@@ -101,13 +114,32 @@ def main():
 
     print("\n" + "=" * 70)
     print("TRAINING COMPLETED")
-    print(f"Best model: {Path(PROJECT_NAME) / RUN_NAME / 'weights' / 'best.pt'}")
+    best_model_path = Path(model.trainer.save_dir) / "weights" / "best.pt"
+    print(f"Best model: {best_model_path}")
     print("=" * 70)
 
-    metrics = model.val(single_cls=True)
+    metrics = YOLO(str(best_model_path)).val(
+        data=str(DATA_YAML_PATH), single_cls=True, imgsz=IMG_SIZE,
+        batch=BATCH_SIZE, device=DEVICE,
+    )
+    print(f"Precision: {metrics.box.mp:.4f}")
+    print(f"Recall: {metrics.box.mr:.4f}")
     print(f"mAP50-95: {metrics.box.map:.4f}")
     print(f"mAP50: {metrics.box.map50:.4f}")
     print(f"mAP75: {metrics.box.map75:.4f}")
+
+    # Publish only after training and validation succeed. Keep the active file
+    # intact until a complete replacement is ready on the same filesystem.
+    fd, temporary_path = tempfile.mkstemp(suffix=".pt", prefix="best_new_", dir=YOLO_MODEL_PATH.parent)
+    os.close(fd)
+    try:
+        shutil.copy2(best_model_path, temporary_path)
+        os.replace(temporary_path, YOLO_MODEL_PATH)
+    finally:
+        if os.path.exists(temporary_path):
+            os.remove(temporary_path)
+    print(f"Updated API checkpoint: {YOLO_MODEL_PATH}")
+    print("Restart the API to load the new checkpoint.")
     return results
 
 

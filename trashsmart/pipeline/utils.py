@@ -10,9 +10,9 @@ from PIL import Image, ImageDraw, ImageFont
 from torchvision import transforms
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from pipeline.config import (
+from trashsmart.pipeline.config import (
     BLUR_LAPLACIAN_THRESHOLD,
     DEVICE,
     ESRGAN_SMART_MODE,
@@ -25,7 +25,7 @@ from pipeline.config import (
     RESNET_CONF_THRESHOLD,
     RESNET_INPUT_SIZE,
 )
-from pipeline.esrgan_enhancer import smart_esrgan_enhance, upscale_with_esrgan
+from trashsmart.pipeline.esrgan_enhancer import smart_esrgan_enhance, upscale_with_esrgan
 
 logger = logging.getLogger(__name__)
 

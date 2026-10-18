@@ -18,7 +18,9 @@ ROBOFLOW_URL = (
 DATASET_DIR = Path(os.getenv("YOLO_DATASET_DIR", PROJECT_ROOT / "datasets" / "HauiTrash-2"))
 DATA_YAML_PATH = Path(os.getenv("YOLO_DATA_YAML", DATASET_DIR / "data.yaml"))
 
-MODEL_PRETRAINED = os.getenv("YOLO_PRETRAINED", "yolo11n.pt")
+from trashsmart.shared.paths import YOLO_MODEL_PATH
+
+LEARNING_RATE = float(os.getenv("YOLO_LEARNING_RATE", "0.0001"))
 EPOCHS = int(os.getenv("YOLO_EPOCHS", "100"))
 BATCH_SIZE = int(os.getenv("YOLO_BATCH_SIZE", "8"))
 IMG_SIZE = int(os.getenv("YOLO_IMG_SIZE", "640"))
@@ -26,4 +28,4 @@ PATIENCE = int(os.getenv("YOLO_PATIENCE", "20"))
 DEVICE = "0" if torch.cuda.is_available() else "cpu"
 
 PROJECT_NAME = os.getenv("YOLO_PROJECT_NAME", str(PROJECT_ROOT / "runs" / "waste_detection_yolo11_roboflow"))
-RUN_NAME = os.getenv("YOLO_RUN_NAME", "run_640")
+RUN_NAME = os.getenv("YOLO_RUN_NAME", "best_new_finetune")

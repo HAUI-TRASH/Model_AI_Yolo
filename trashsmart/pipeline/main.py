@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from trashsmart.pipeline.config import (
     CLASS_NAMES,
@@ -88,7 +88,7 @@ def get_models():
 # ========================
 class PredictUrlRequest(BaseModel):
     image_url: HttpUrl
-    conf: float = 0.25
+    conf: float = CONF_THRESHOLD
     iou: float = 0.6
     request_id: Optional[int] = None
 
@@ -156,6 +156,8 @@ def process_image(
     resnet_model,
     request_id: Optional[int] = None,
     original_image_url: Optional[str] = None,
+    conf: float = CONF_THRESHOLD,
+    iou: float = 0.6,
 ) -> Dict[str, Any]:
     """
     Pipeline chính:
@@ -171,7 +173,7 @@ def process_image(
     h, w = image.shape[:2]
 
     # --- YOLO Detection ---
-    results = yolo_model(image, imgsz=YOLO_IMG_SIZE)
+    results = yolo_model(image, imgsz=YOLO_IMG_SIZE, conf=conf, iou=iou)
     os.makedirs(str(CROPS_DIR), exist_ok=True)
 
     # Thu thập tất cả valid crops + metadata
@@ -184,7 +186,7 @@ def process_image(
 
         for box in boxes:
             yolo_conf = box.conf.item()
-            if yolo_conf < CONF_THRESHOLD:
+            if yolo_conf < conf:
                 continue
 
             yolo_cls_id = int(box.cls.item())
@@ -394,6 +396,8 @@ def predict_image_url(req: PredictUrlRequest) -> Dict[str, Any]:
             resnet_model,
             request_id=req.request_id,
             original_image_url=str(req.image_url),
+            conf=req.conf,
+            iou=req.iou,
         )
         return result
     except Exception as e:

@@ -6,7 +6,7 @@ import torch
 from dotenv import load_dotenv
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -23,7 +23,7 @@ CLASS_NAMES = [name.strip() for name in CLASS_NAMES if name.strip()]
 NUM_CLASSES = len(CLASS_NAMES)
 YOLO_OBJECT_LABEL = os.getenv("YOLO_OBJECT_LABEL", "chai")
 
-YOLO_MODEL_PATH = Path(os.getenv("YOLO_MODEL_PATH", MODELS_DIR / "best_new.pt"))
+from trashsmart.shared.paths import YOLO_MODEL_PATH
 RESNET_MODEL_PATH = Path(os.getenv("RESNET_MODEL_PATH", MODELS_DIR / "best_resnet50_model1.pth"))
 ESRGAN_MODEL_PATH = Path(os.getenv("ESRGAN_MODEL_PATH", MODELS_DIR / "RealESRGAN_x4plus.pth"))
 
@@ -50,6 +50,7 @@ ESRGAN_PRE_PAD = int(os.getenv("ESRGAN_PRE_PAD", "0"))
 ESRGAN_FP32 = os.getenv("ESRGAN_FP32", "0") == "1"
 
 SMALL_CROP_THRESHOLD = int(os.getenv("SMALL_CROP_THRESHOLD", "120"))
+MIN_CROP_SIZE = int(os.getenv("MIN_CROP_SIZE", "10"))
 LOW_LIGHT_BRIGHTNESS_THRESHOLD = int(os.getenv("LOW_LIGHT_BRIGHTNESS_THRESHOLD", "80"))
 BLUR_LAPLACIAN_THRESHOLD = float(os.getenv("BLUR_LAPLACIAN_THRESHOLD", "100.0"))
 

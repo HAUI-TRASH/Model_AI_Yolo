@@ -51,6 +51,7 @@ log/
 ####################################
 #runs/
 weights/
+runs/**/backups/
 #*.pt
 *.onnx
 *.engine

@@ -24,7 +24,7 @@ import types
 from pathlib import Path
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:
     import torchvision.transforms.functional as _F
@@ -46,7 +46,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-from pipeline.config import (
+from trashsmart.pipeline.config import (
     ESRGAN_MODEL_PATH,
     ESRGAN_SCALE,
     ESRGAN_TILE,

@@ -17,11 +17,11 @@ import numpy as np
 import torch
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from pipeline.utils import preprocess_batch_for_resnet
+from trashsmart.pipeline.utils import preprocess_batch_for_resnet
 
-from pipeline.config import (
+from trashsmart.pipeline.config import (
     CAMERA_FPS,
     CAMERA_HEIGHT,
     CAMERA_INDEX,
@@ -37,8 +37,8 @@ from pipeline.config import (
     YOLO_MODEL_PATH,
 )
 
-from pipeline.models import load_resnet_model, load_yolo_model
-from pipeline.utils import build_detection_label, get_class_labels_batch
+from trashsmart.pipeline.models import load_resnet_model, load_yolo_model
+from trashsmart.pipeline.utils import build_detection_label, get_class_labels_batch
 
 logging.basicConfig(
     level=logging.INFO,
@@ -191,7 +191,7 @@ def get_detections(frame, roi, yolo_model, resnet_model) -> list:
     x1r, y1r, x2r, y2r = roi
     region = frame[y1r:y2r, x1r:x2r]   # Crop vùng ROI để đưa vào YOLO
 
-    results = yolo_model(region, imgsz=YOLO_IMG_SIZE, verbose=False)
+    results = yolo_model(region, imgsz=YOLO_IMG_SIZE, conf=CONF_THRESHOLD, verbose=False)
 
     valid_items = []
     for result in results:

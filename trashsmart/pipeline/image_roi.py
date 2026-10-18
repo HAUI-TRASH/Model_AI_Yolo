@@ -25,11 +25,11 @@ from PIL import Image
 from torchvision import transforms
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from pipeline.utils import preprocess_batch_for_resnet
+from trashsmart.pipeline.utils import preprocess_batch_for_resnet
 
-from pipeline.config import (
+from trashsmart.pipeline.config import (
     CLASS_NAMES,
     CONF_THRESHOLD,
     CROPS_DIR,
@@ -46,8 +46,8 @@ from pipeline.config import (
     YOLO_IMG_SIZE,
     YOLO_MODEL_PATH,
 )
-from pipeline.models import load_resnet_model, load_yolo_model
-from pipeline.utils import build_detection_label, get_class_labels_batch
+from trashsmart.pipeline.models import load_resnet_model, load_yolo_model
+from trashsmart.pipeline.utils import build_detection_label, get_class_labels_batch
 
 logging.basicConfig(
     level=logging.INFO,
@@ -172,7 +172,7 @@ def run_inference_on_rois(
             continue
 
         logger.info(f"[ROI {roi_idx}] Chạy YOLO ({rx2-rx1}x{ry2-ry1}px)...")
-        results = yolo_model(region, imgsz=YOLO_IMG_SIZE, verbose=False)
+        results = yolo_model(region, imgsz=YOLO_IMG_SIZE, conf=CONF_THRESHOLD, verbose=False)
 
         valid_items = []
         for result in results:

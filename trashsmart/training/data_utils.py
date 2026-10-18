@@ -9,10 +9,10 @@ from torchvision import datasets
 import numpy as np
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from shared.transforms import get_eval_transform, get_train_transform
-from training.config import BATCH_SIZE, DEVICE, DIR_PATH, TARGET_SIZE
+from trashsmart.shared.transforms import get_eval_transform, get_train_transform
+from trashsmart.training.config import BATCH_SIZE, DEVICE, DIR_PATH, TARGET_SIZE
 
 
 def get_transforms():

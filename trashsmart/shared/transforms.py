@@ -4,9 +4,9 @@ from pathlib import Path
 from torchvision import transforms
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from shared.constants import IMAGENET_MEAN, IMAGENET_STD
+from trashsmart.shared.constants import IMAGENET_MEAN, IMAGENET_STD
 
 
 def get_train_transform(input_size: int = 224) -> transforms.Compose:
