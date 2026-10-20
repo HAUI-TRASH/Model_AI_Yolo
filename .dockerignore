@@ -5,6 +5,8 @@
 .env.*
 .idea/
 .venv/
+.tools/
+trashsmart/models/*backup*.pth
 dataset/
 runs/
 *.rar
@@ -13,6 +15,5 @@ runs/
 outputs/
 crops/
 archive/
-tests/
 __pycache__/
 *.pyc

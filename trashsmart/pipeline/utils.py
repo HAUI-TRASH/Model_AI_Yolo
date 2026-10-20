@@ -7,25 +7,22 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
-from torchvision import transforms
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from trashsmart.pipeline.config import (
-    BLUR_LAPLACIAN_THRESHOLD,
     DEVICE,
     ESRGAN_SMART_MODE,
     ESRGAN_TARGET_SIZE,
-    FIX_LOW_LIGHT,
-    FIX_MOTION_BLUR,
-    IMAGENET_MEAN,
-    IMAGENET_STD,
-    LOW_LIGHT_BRIGHTNESS_THRESHOLD,
     RESNET_CONF_THRESHOLD,
     RESNET_INPUT_SIZE,
 )
 from trashsmart.pipeline.esrgan_enhancer import smart_esrgan_enhance, upscale_with_esrgan
+from trashsmart.shared.preprocessing import (
+    fix_low_light, fix_motion_blur, letterbox_to_square,
+    quick_enhance_for_resnet, preprocess_resnet_crop,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -151,65 +148,6 @@ def build_detection_label(object_label: str, material_label: str) -> str:
 # 1. TIỀN XỬ LÝ NHANH (cho ResNet inference)
 # =========================================================
 
-def fix_low_light(image: np.ndarray) -> np.ndarray:
-    """
-    Cải thiện độ sáng bằng Gamma Correction + CLAHE.
-    Chỉ áp dụng khi ảnh thực sự tối (mean L < threshold).
-    """
-    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-
-    if np.mean(l) < LOW_LIGHT_BRIGHTNESS_THRESHOLD:
-        # Gamma correction (gamma = 1/1.5 → làm sáng)
-        table = np.array(
-            [(i / 255.0) ** (1.0 / 1.5) * 255 for i in range(256)],
-            dtype=np.uint8,
-        )
-        l = cv2.LUT(l, table)
-        # CLAHE để cân bằng tương phản cục bộ
-        l = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(l)
-        image = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
-
-    return image
-
-
-def fix_motion_blur(image: np.ndarray) -> np.ndarray:
-    """
-    Làm nét nhẹ bằng Unsharp Mask nếu ảnh bị mờ.
-    Chỉ áp dụng khi Laplacian variance < threshold.
-    """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    if cv2.Laplacian(gray, cv2.CV_64F).var() < BLUR_LAPLACIAN_THRESHOLD:
-        gaussian = cv2.GaussianBlur(image, (0, 0), sigmaX=1.0)
-        image = cv2.addWeighted(image, 2.5, gaussian, -1.5, 0)
-    return image
-
-
-def letterbox_to_square(image: np.ndarray, size: int, pad_color=(255, 255, 255)) -> np.ndarray:
-    h, w = image.shape[:2]
-    scale = size / max(h, w)
-    new_w, new_h = int(w * scale), int(h * scale)
-    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LANCZOS4
-    resized = cv2.resize(image, (new_w, new_h), interpolation=interp)
-    canvas = np.full((size, size, 3), pad_color, dtype=np.uint8)
-    top = (size - new_h) // 2
-    left = (size - new_w) // 2
-    canvas[top:top + new_h, left:left + new_w] = resized
-    return canvas
-
-
-def quick_enhance_for_resnet(image: np.ndarray) -> np.ndarray:
-    """
-    Pipeline xử lý nhanh trước khi đưa vào ResNet.
-    Không dùng ESRGAN ở bước này để tối ưu tốc độ.
-    """
-    if FIX_LOW_LIGHT:
-        image = fix_low_light(image)
-    if FIX_MOTION_BLUR:
-        image = fix_motion_blur(image)
-    return image
-
-
 # =========================================================
 # 2. XUẤT ẢNH CHẤT LƯỢNG CAO (cho display/lưu file)
 # =========================================================
@@ -229,18 +167,6 @@ def enhance_for_display(image: np.ndarray) -> np.ndarray:
 # 3. TRANSFORM & INFERENCE
 # =========================================================
 
-def _build_resnet_transform() -> transforms.Compose:
-    """Transform pipeline cho ResNet — letterbox đã xử lý trước ở numpy stage."""
-    return transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
-
-
-# Transform khởi tạo một lần, tái sử dụng cho tất cả inference
-_resnet_transform = _build_resnet_transform()
-
-
 def preprocess_for_resnet(image_crop: np.ndarray) -> torch.Tensor:
     """
     Chuyển numpy BGR crop → Tensor chuẩn ImageNet cho ResNet.
@@ -251,9 +177,7 @@ def preprocess_for_resnet(image_crop: np.ndarray) -> torch.Tensor:
     Returns:
         Tensor shape [1, 3, 224, 224] trên DEVICE
     """
-    image_crop = letterbox_to_square(image_crop, RESNET_INPUT_SIZE)
-    pil_image = Image.fromarray(cv2.cvtColor(image_crop, cv2.COLOR_BGR2RGB))
-    return _resnet_transform(pil_image).unsqueeze(0).to(DEVICE)
+    return preprocess_resnet_crop(image_crop, RESNET_INPUT_SIZE).unsqueeze(0).to(DEVICE)
 
 
 def preprocess_batch_for_resnet(crops: list) -> torch.Tensor:

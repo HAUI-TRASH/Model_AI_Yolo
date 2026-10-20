@@ -3,18 +3,19 @@ import json
 import logging
 import os
 import sys
+import threading
+import anyio
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import cv2
 import numpy as np
 import torch
-import requests
 import cloudinary
 import cloudinary.uploader
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -28,11 +29,14 @@ from trashsmart.pipeline.config import (
     NUM_CLASSES,
     OUTPUT_DIR,
     RESNET_MODEL_PATH,
+    RESNET_CONF_THRESHOLD,
     YOLO_OBJECT_LABEL,
     YOLO_IMG_SIZE,
     YOLO_MODEL_PATH,
 )
 from trashsmart.pipeline.models import load_resnet_model, load_yolo_model
+from trashsmart.pipeline.input_limits import download_image, read_upload, ImageInputError
+from trashsmart.pipeline.admission import PredictionAdmission
 from trashsmart.pipeline.utils import (
     build_detection_label,
     build_vietnamese_detection_label,
@@ -40,7 +44,6 @@ from trashsmart.pipeline.utils import (
     enhance_for_display,
     get_class_labels_batch,
     preprocess_batch_for_resnet,
-    quick_enhance_for_resnet,
 )
 
 # ========================
@@ -57,8 +60,8 @@ logger = logging.getLogger(__name__)
 # FastAPI App
 # ========================
 app = FastAPI(title="TrashSmart Detection API")
+app.add_middleware(PredictionAdmission)
 
-LOW_CONF_THRESHOLD = 0.5
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -72,14 +75,18 @@ cloudinary.config(
 # ========================
 _yolo_model = None
 _resnet_model = None
+_model_lock = threading.Lock()
+_inference_lock = threading.Lock()
+_health_limiter = anyio.CapacityLimiter(1)
 
 
 def get_models():
     global _yolo_model, _resnet_model
-    if _yolo_model is None:
-        _yolo_model = load_yolo_model(YOLO_MODEL_PATH)
-    if _resnet_model is None:
-        _resnet_model = load_resnet_model(RESNET_MODEL_PATH, NUM_CLASSES)
+    with _model_lock:
+        if _yolo_model is None:
+            _yolo_model = load_yolo_model(YOLO_MODEL_PATH)
+        if _resnet_model is None:
+            _resnet_model = load_resnet_model(RESNET_MODEL_PATH, NUM_CLASSES)
     return _yolo_model, _resnet_model
 
 
@@ -88,8 +95,8 @@ def get_models():
 # ========================
 class PredictUrlRequest(BaseModel):
     image_url: HttpUrl
-    conf: float = CONF_THRESHOLD
-    iou: float = 0.6
+    conf: float = Field(default=CONF_THRESHOLD, ge=0, le=1)
+    iou: float = Field(default=0.6, ge=0, le=1)
     request_id: Optional[int] = None
 
 
@@ -105,10 +112,7 @@ def clamp_bbox(x1: int, y1: int, x2: int, y2: int, width: int, height: int):
 
 
 def download_image_to_cv2(url: str) -> np.ndarray:
-    r = requests.get(url, timeout=15)
-    r.raise_for_status()
-    np_arr = np.frombuffer(r.content, np.uint8)
-    return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    return download_image(url)
 
 
 def upload_image_bytes_to_cloudinary(
@@ -123,6 +127,7 @@ def upload_image_bytes_to_cloudinary(
         folder=folder,
         public_id=public_id,
         overwrite=overwrite,
+        timeout=15,
     )
     return res.get("secure_url")
 
@@ -143,6 +148,7 @@ def upload_crop_to_cloudinary(
         folder=folder,
         public_id=public_id,
         overwrite=True if public_id else False,
+        timeout=15,
     )
     return res.get("secure_url")
 
@@ -173,7 +179,8 @@ def process_image(
     h, w = image.shape[:2]
 
     # --- YOLO Detection ---
-    results = yolo_model(image, imgsz=YOLO_IMG_SIZE, conf=conf, iou=iou)
+    with _inference_lock:
+        results = yolo_model(image, imgsz=YOLO_IMG_SIZE, conf=conf, iou=iou)
     os.makedirs(str(CROPS_DIR), exist_ok=True)
 
     # Thu thập tất cả valid crops + metadata
@@ -233,10 +240,9 @@ def process_image(
     logger.info(f"Phát hiện {len(valid_items)} đối tượng → Batch ResNet inference...")
 
     # --- Batch ResNet Inference ---
-    enhanced_crops = [quick_enhance_for_resnet(item["crop"].copy()) for item in valid_items]
-    batch_tensor   = preprocess_batch_for_resnet(enhanced_crops)
+    batch_tensor = preprocess_batch_for_resnet([item["crop"] for item in valid_items])
 
-    with torch.no_grad():
+    with _inference_lock, torch.no_grad():
         batch_output = resnet_model(batch_tensor)
 
     resnet_results = get_class_labels_batch(batch_output, CLASS_NAMES)
@@ -302,7 +308,7 @@ def process_image(
             text_color=(0, 0, 0),
         )
 
-        needs_confirm = resnet_conf < LOW_CONF_THRESHOLD
+        needs_confirm = resnet_conf < RESNET_CONF_THRESHOLD
         crop_url = None
 
         if needs_confirm:
@@ -354,42 +360,57 @@ def process_image(
 # API Endpoints
 # ========================
 @app.get("/health")
-def health():
+async def health():
+    try:
+        await anyio.to_thread.run_sync(get_models, limiter=_health_limiter)
+    except Exception:
+        logger.exception("Model readiness failed")
+        return JSONResponse({"status": "unavailable", "modelsReady": False}, status_code=503)
+    return {"status": "ok", "modelsReady": True}
+
+
+@app.get("/live")
+async def live():
     return {"status": "ok"}
 
 
 @app.post("/predict-image")
-async def predict_image(file: UploadFile = File(...)):
-    img_bytes = await file.read()
-    np_arr = np.frombuffer(img_bytes, np.uint8)
-    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+def predict_image(file: UploadFile = File(...)):
+    return predict_uploaded_image(file)
 
-    if img is None:
-        return JSONResponse({"error": "Invalid image"}, status_code=400)
 
-    yolo_model, resnet_model = get_models()
+def predict_uploaded_image(file: UploadFile, request_id: Optional[int] = None):
+    """Sync endpoints run decoding, inference and uploads in FastAPI's thread pool."""
     try:
-        result = process_image(img, yolo_model, resnet_model)
+        img = read_upload(file.file)
+        yolo_model, resnet_model = get_models()
+        result = process_image(img, yolo_model, resnet_model, request_id=request_id)
         return JSONResponse(content=result, status_code=200)
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+    except ImageInputError as e:
+        return JSONResponse({"error": str(e)}, status_code=e.status_code)
+    except Exception:
+        logger.exception("Prediction/upload failed")
+        return JSONResponse({"error": "Prediction/upload failed"}, status_code=500)
 
 
 @app.post("/predict-image-url")
 def predict_image_url(req: PredictUrlRequest) -> Dict[str, Any]:
     try:
         img = download_image_to_cv2(str(req.image_url))
-    except Exception as e:
+    except ImageInputError as e:
+        return JSONResponse({"error": str(e)}, status_code=e.status_code)
+    except Exception:
+        logger.exception("Image URL download failed")
         return JSONResponse(
-            {"error": f"Failed to download/decode image: {str(e)}"},
+            {"error": "Failed to download/decode image"},
             status_code=400,
         )
 
     if img is None:
         return JSONResponse({"error": "Invalid image data"}, status_code=400)
 
-    yolo_model, resnet_model = get_models()
     try:
+        yolo_model, resnet_model = get_models()
         result = process_image(
             img,
             yolo_model,
@@ -400,8 +421,9 @@ def predict_image_url(req: PredictUrlRequest) -> Dict[str, Any]:
             iou=req.iou,
         )
         return result
-    except Exception as e:
-        return JSONResponse({"error": f"Predict/upload failed: {str(e)}"}, status_code=500)
+    except Exception:
+        logger.exception("URL prediction/upload failed")
+        return JSONResponse({"error": "Predict/upload failed"}, status_code=500)
 
 
 # ========================
@@ -428,41 +450,11 @@ def main():
     logger.info(f"Kết quả JSON: {json_path}")
     logger.info(f"Tổng đối tượng phát hiện: {len(response['detections'])}")
 @app.post("/predict-image-json")
-async def predict_image_json(
+def predict_image_json(
     file: UploadFile = File(...),
     request_id: Optional[int] = None
 ):
-    try:
-        # Đọc ảnh upload
-        img_bytes = await file.read()
-        np_arr = np.frombuffer(img_bytes, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-        if img is None:
-            return JSONResponse(
-                {"error": "Invalid image"},
-                status_code=400
-            )
-
-        # Load YOLO + ResNet
-        yolo_model, resnet_model = get_models()
-
-        # Chạy pipeline YOLO -> crop -> ResNet -> trả JSON
-        result = process_image(
-            image=img,
-            yolo_model=yolo_model,
-            resnet_model=resnet_model,
-            request_id=request_id
-        )
-
-        return JSONResponse(content=result, status_code=200)
-
-    except Exception as e:
-        logger.exception("Predict image json failed")
-        return JSONResponse(
-            {"error": f"Predict failed: {str(e)}"},
-            status_code=500
-        )
+    return predict_uploaded_image(file, request_id=request_id)
 
 
 if __name__ == "__main__":

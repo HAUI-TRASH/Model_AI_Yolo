@@ -18,7 +18,7 @@ from trashsmart.training.config import BATCH_SIZE, DEVICE, DIR_PATH, TARGET_SIZE
 def get_transforms():
     return (
         get_train_transform(input_size=TARGET_SIZE[0]),
-        get_eval_transform(resize_size=256, input_size=TARGET_SIZE[0]),
+        get_eval_transform(input_size=TARGET_SIZE[0]),
     )
 def _seed_worker(worker_id):
     seed = torch.initial_seed() % (2**32)

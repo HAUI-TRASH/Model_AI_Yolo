@@ -28,7 +28,8 @@ from trashsmart.training.evaluate import (
 )
 from trashsmart.training.model_utils import build_model, count_parameters
 from trashsmart.training.test_utils import test_random_samples
-from trashsmart.training.train import combine_history, train_stage1, train_stage2
+from trashsmart.training.train import train_two_stages
+from trashsmart.shared.classes import validate_class_order
 
 def main():
     if not DIR_PATH.exists():
@@ -55,6 +56,7 @@ def main():
 
     print("Loading data...")
     train_loader, val_loader, class_names = get_data_loaders()
+    validate_class_order(class_names)
     print(f"Train samples: {len(train_loader.dataset)}")
     print(f"Val samples: {len(val_loader.dataset)}")
     print(f"Classes: {class_names}\n")
@@ -68,9 +70,7 @@ def main():
     count_parameters(model)
     print()
 
-    history_stage1 = train_stage1(model, train_loader, val_loader, class_weights)
-    history_stage2 = train_stage2(model, train_loader, val_loader, class_weights)
-    history_combined = combine_history(history_stage1, history_stage2)
+    history_combined = train_two_stages(model, train_loader, val_loader, class_weights)
 
     print("\nPlotting training history...")
     plot_training_history(history_combined)

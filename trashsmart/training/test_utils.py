@@ -24,12 +24,7 @@ def get_tta_transforms():
         transforms.RandomRotation(20),
         transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
     ]
-    normalize = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+    normalize = get_eval_transform()
     result = []
     for aug in spatial_augs:
         if aug is None:

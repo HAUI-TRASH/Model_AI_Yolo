@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10-slim AS runtime
 
 WORKDIR /app
 
@@ -13,18 +13,27 @@ RUN apt-get update && apt-get install -y \
     libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Dùng PyPI cho các dependency phụ; PyTorch index chỉ chứa wheel torch CPU.
+# Install the resolved CPU runtime, including pinned transitive dependencies.
+COPY requirements-runtime-linux-py310.lock .
 RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir torch torchvision \
-        --index-url https://download.pytorch.org/whl/cpu \
-        --extra-index-url https://pypi.org/simple
-
-COPY trashsmart/pipeline/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+    && python -m pip install --no-cache-dir --no-deps -r requirements-runtime-linux-py310.lock \
+    && python -m pip check
 
 # Copy source + model weights (best_new.pt, *.pth đã được commit trong repo)
-COPY . .
+COPY trashsmart/ ./trashsmart/
+COPY api.py apiv2.py app.py ./
+
+ENV YOLO_AUTOINSTALL=false
 
 EXPOSE 8000
 
 CMD ["uvicorn", "trashsmart.pipeline.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM runtime AS test
+COPY requirements-test-linux-py310.lock .
+RUN python -m pip install --no-cache-dir --no-deps -r requirements-test-linux-py310.lock \
+    && python -m pip check
+COPY tests/ ./tests/
+RUN python -m unittest discover -s tests -q
+
+FROM runtime AS production

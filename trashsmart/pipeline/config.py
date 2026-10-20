@@ -18,8 +18,7 @@ MODELS_DIR = PROJECT_ROOT / "trashsmart" / "models"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-CLASS_NAMES = os.getenv("TRASHSMART_CLASSES", "glass,metal,paper,plastic").split(",")
-CLASS_NAMES = [name.strip() for name in CLASS_NAMES if name.strip()]
+from trashsmart.shared.classes import CLASS_NAMES
 NUM_CLASSES = len(CLASS_NAMES)
 YOLO_OBJECT_LABEL = os.getenv("YOLO_OBJECT_LABEL", "chai")
 
@@ -31,11 +30,12 @@ CONF_THRESHOLD = float(os.getenv("YOLO_CONF_THRESHOLD", "0.35"))
 YOLO_IMG_SIZE = int(os.getenv("YOLO_IMG_SIZE", "640"))
 
 RESNET_RESIZE = int(os.getenv("RESNET_RESIZE", "256"))
-RESNET_INPUT_SIZE = int(os.getenv("RESNET_INPUT_SIZE", "224"))
+from trashsmart.shared.resnet_config import (
+    RESNET_INPUT_SIZE, FIX_LOW_LIGHT, FIX_MOTION_BLUR,
+    LOW_LIGHT_BRIGHTNESS_THRESHOLD, BLUR_LAPLACIAN_THRESHOLD,
+)
 RESNET_CONF_THRESHOLD = float(os.getenv("RESNET_CONF_THRESHOLD", "0.5"))
 
-FIX_LOW_LIGHT = os.getenv("FIX_LOW_LIGHT", "1") == "1"
-FIX_MOTION_BLUR = os.getenv("FIX_MOTION_BLUR", "1") == "1"
 FIX_RESIZE_BLUR = os.getenv("FIX_RESIZE_BLUR", "1") == "1"
 
 # FIX_ESRGAN = os.getenv("FIX_ESRGAN", "1") == "1"
@@ -51,8 +51,6 @@ ESRGAN_FP32 = os.getenv("ESRGAN_FP32", "0") == "1"
 
 SMALL_CROP_THRESHOLD = int(os.getenv("SMALL_CROP_THRESHOLD", "120"))
 MIN_CROP_SIZE = int(os.getenv("MIN_CROP_SIZE", "10"))
-LOW_LIGHT_BRIGHTNESS_THRESHOLD = int(os.getenv("LOW_LIGHT_BRIGHTNESS_THRESHOLD", "80"))
-BLUR_LAPLACIAN_THRESHOLD = float(os.getenv("BLUR_LAPLACIAN_THRESHOLD", "100.0"))
 
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", PROJECT_ROOT / "outputs" / "predict1"))
 CROPS_DIR = OUTPUT_DIR / "crops"

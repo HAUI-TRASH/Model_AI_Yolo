@@ -18,12 +18,13 @@ RESNET_MODEL_PATH = Path(
 MODELS_DIR = RESNET_MODEL_PATH.parent
 
 DIR_PATH = Path(os.getenv("DATASET_PATH", PROJECT_ROOT / "dataset_new"))
-TARGET_SIZE = (224, 224)
+from trashsmart.shared.resnet_config import RESNET_INPUT_SIZE
+TARGET_SIZE = (RESNET_INPUT_SIZE, RESNET_INPUT_SIZE)
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "32"))
 EPOCHS = int(os.getenv("EPOCHS", "100"))
 STAGE1_EPOCHS = int(os.getenv("STAGE1_EPOCHS", "20"))
 LEARNING_RATE = float(os.getenv("LEARNING_RATE", "0.0001"))
-INPUT_SHAPE = (3, 224, 224)
+INPUT_SHAPE = (3, *TARGET_SIZE)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

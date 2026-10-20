@@ -1,6 +1,7 @@
 -r trashsmart/pipeline/requirements.txt
-torch
-torchvision
-scikit-learn
-matplotlib
-plotly
+torch==2.14.0
+torchvision==0.29.0
+scikit-learn==1.7.2; python_version < "3.11"
+scikit-learn==1.8.0; python_version >= "3.11"
+matplotlib==3.10.8
+plotly==6.7.0

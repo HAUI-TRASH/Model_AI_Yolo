@@ -134,7 +134,7 @@ def main():
     """Evaluate the existing checkpoint without starting training."""
     from trashsmart.training.config import DIR_PATH
     from trashsmart.training.data_utils import get_data_loaders
-    from trashsmart.pipeline.config import CLASS_NAMES
+    from trashsmart.shared.classes import validate_class_order
 
     if not DIR_PATH.is_dir():
         raise FileNotFoundError(
@@ -144,15 +144,13 @@ def main():
     if not Path(BEST_MODEL_PATH).is_file():
         raise FileNotFoundError(f"ResNet checkpoint not found: {BEST_MODEL_PATH}")
     _, val_loader, classes = get_data_loaders()
-    if classes != CLASS_NAMES:
-        raise ValueError(
-            f"Dataset class order {classes} does not match API class order {CLASS_NAMES}."
-        )
+    validate_class_order(classes)
     print(f"ResNet checkpoint: {BEST_MODEL_PATH}")
     print(f"Dataset: {DIR_PATH}")
     print(f"Validation samples: {len(val_loader.dataset)} (10% split, seed=42)")
     print(f"Classes: {classes}")
-    print("Evaluation uses Resize + CenterCrop, matching training validation.")
+    print("Preprocessing: shared API enhancement + letterbox + ImageNet normalization.")
+    print("Metrics evaluate ResNet on labelled images, not the full YOLO detection pipeline.")
     _, predictions, labels = evaluate_model(val_loader)
     print_classification_report(predictions, labels)
 

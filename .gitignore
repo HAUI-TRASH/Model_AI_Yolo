@@ -18,6 +18,8 @@ env/
 .env
 .env.*
 .venv/
+.tools/
+outputs/
 
 yolo-env/
 

@@ -122,14 +122,17 @@ class BboxStabilizer:
         matched_stable = set()
         matched_new    = set()
 
-        for ni, nd in enumerate(new_detections):
-            best_iou, best_si = 0, -1
-            for si, sd in enumerate(self._stable):
-                iou = _iou(nd["bbox"], sd["bbox"])
-                if iou > best_iou:
-                    best_iou, best_si = iou, si
-
+        # Match strongest overlaps first, each detection/track at most once.
+        candidates = sorted(
+            [(_iou(nd["bbox"], sd["bbox"]), ni, si)
+             for ni, nd in enumerate(new_detections)
+             for si, sd in enumerate(self._stable)], reverse=True,
+        )
+        for best_iou, ni, best_si in candidates:
+            if ni in matched_new or best_si in matched_stable:
+                continue
             if best_iou > 0.3:
+                nd = new_detections[ni]
                 matched_stable.add(best_si)
                 matched_new.add(ni)
                 if _bbox_shift(nd["bbox"], self._stable[best_si]["bbox"]) > BBOX_STABILITY_THRESHOLD:
@@ -156,7 +159,7 @@ class BboxStabilizer:
                 self._stable.append({**nd, "miss_count": 0})
 
     def get_stable(self) -> list:
-        return list(self._stable)
+        return [dict(item) for item in self._stable]
 
     def clear(self):
         self._stable = []
@@ -279,6 +282,7 @@ class InferenceThread:
         self._stop_event = threading.Event()
         self._input_frame = None
         self._detections  = []
+        self._result_pending = False
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
@@ -286,8 +290,12 @@ class InferenceThread:
         with self._lock:
             self._input_frame = frame.copy()
 
-    def get_detections(self) -> list:
+    def get_detections(self):
+        """Consume each completed inference once; None means no new result."""
         with self._lock:
+            if not self._result_pending:
+                return None
+            self._result_pending = False
             return list(self._detections)
 
     def stop(self):
@@ -304,10 +312,15 @@ class InferenceThread:
                 time.sleep(0.005)
                 continue
 
-            dets = get_detections(frame, self._roi, self._yolo, self._resnet)
+            try:
+                dets = get_detections(frame, self._roi, self._yolo, self._resnet)
+            except Exception:
+                logger.exception("Camera inference failed")
+                dets = []
 
             with self._lock:
                 self._detections = dets
+                self._result_pending = True
 
 
 # ========================
@@ -368,7 +381,8 @@ def run_camera():
 
         # Cập nhật stabilizer từ kết quả mới nhất
         new_dets = inference_thread.get_detections()
-        stabilizer.update(new_dets)
+        if new_dets is not None:
+            stabilizer.update(new_dets)
 
         # Vẽ overlay tối ngoài ROI
         display = draw_overlay(frame, roi)

@@ -5,6 +5,7 @@ from typing import Union
 import torch
 import torch.nn as nn
 from torchvision import models
+from trashsmart.shared.classes import validate_checkpoint_classes
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +96,14 @@ def load_resnet_checkpoint(
     device: torch.device,
     pretrained: bool = False,
 ) -> TrashResNet50:
-    model = build_trash_resnet50(num_classes=num_classes, device=device, pretrained=pretrained)
     checkpoint = load_checkpoint(model_path=model_path, device=device)
+    has_metadata = validate_checkpoint_classes(checkpoint, num_classes)
+    if not has_metadata:
+        logger.warning(
+            "Legacy ResNet checkpoint has no class metadata; using this project's original "
+            "order [glass, metal, paper, plastic]. New training checkpoints include metadata."
+        )
+    model = build_trash_resnet50(num_classes=num_classes, device=device, pretrained=pretrained)
 
     if isinstance(checkpoint, nn.Module):
         state_dict = checkpoint.state_dict()
